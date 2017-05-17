@@ -1,7 +1,12 @@
 package main
 
-import "fmt"
+import (
+	"crypto/sha512"
+	"fmt"
+)
 
-func main() {
-	fmt.Println("Hello, world!")
+func Hash(password string) string {
+	hash := sha512.New()
+	hash.Write([]byte(password))
+	return fmt.Sprintf("%x", hash.Sum(nil))
 }
