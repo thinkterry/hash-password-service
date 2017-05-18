@@ -2,7 +2,7 @@
 
 _HTTP service that hashes passwords using SHA512 and Base64 encoding_
 
-To begin, start the server:
+To begin, start the server (requires Go 1.8):
 
 ```bash
 $ go run hash_password.go
