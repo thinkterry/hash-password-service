@@ -22,7 +22,7 @@ func EncodedHash(msg string) string {
 	return Base64(Hash([]byte(msg)))
 }
 
-func handler(w http.ResponseWriter, r *http.Request) {
+func encodedHashHandler(w http.ResponseWriter, r *http.Request) {
 	validRequest := (r.URL.Path == "/" && r.Method == "POST")
 	if !validRequest {
 		http.NotFound(w, r)
@@ -58,7 +58,7 @@ func shutdownHandler(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	// per https://golang.org/pkg/net/http/
-	http.HandleFunc("/", handler)
+	http.HandleFunc("/", encodedHashHandler)
 	http.HandleFunc("/shutdown", shutdownHandler)
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
