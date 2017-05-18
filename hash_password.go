@@ -18,20 +18,6 @@ const shutdownPath = "/shutdown"
 
 var srv *http.Server
 
-func Hash(msg []byte) []byte {
-	hasher := sha512.New()
-	hasher.Write(msg)
-	return hasher.Sum(nil)
-}
-
-func Base64(msg []byte) string {
-	return base64.StdEncoding.EncodeToString(msg)
-}
-
-func EncodedHash(msg string) string {
-	return Base64(Hash([]byte(msg)))
-}
-
 func encodedHashHandler(w http.ResponseWriter, r *http.Request) {
 	validRequest := (r.URL.Path == rootPath && r.Method == "POST")
 	if !validRequest {
@@ -53,12 +39,6 @@ func encodedHashHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprint(w, EncodedHash(password))
 }
 
-func badRequest(w http.ResponseWriter) {
-	// per http://stackoverflow.com/a/40096757
-	w.WriteHeader(http.StatusBadRequest)
-	w.Write([]byte("400 bad request"))
-}
-
 func shutdownHandler(w http.ResponseWriter, r *http.Request) {
 	validRequest := (r.URL.Path == shutdownPath && r.Method == "POST")
 	if !validRequest {
@@ -66,6 +46,12 @@ func shutdownHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	StopServer()
+}
+
+func badRequest(w http.ResponseWriter) {
+	// per http://stackoverflow.com/a/40096757
+	w.WriteHeader(http.StatusBadRequest)
+	w.Write([]byte("400 bad request"))
 }
 
 func StartServer() {
@@ -94,6 +80,20 @@ func StopServer() {
 	}
 
 	os.Exit(0)
+}
+
+func EncodedHash(msg string) string {
+	return Base64(Hash([]byte(msg)))
+}
+
+func Hash(msg []byte) []byte {
+	hasher := sha512.New()
+	hasher.Write(msg)
+	return hasher.Sum(nil)
+}
+
+func Base64(msg []byte) string {
+	return base64.StdEncoding.EncodeToString(msg)
 }
 
 func main() {
