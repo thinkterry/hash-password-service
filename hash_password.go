@@ -4,7 +4,6 @@ import (
 	"crypto/sha512"
 	"encoding/base64"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net/http"
 )
@@ -24,21 +23,42 @@ func EncodedHash(msg string) string {
 }
 
 func handler(w http.ResponseWriter, r *http.Request) {
-	data, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		log.Fatal(err)
+	validRequest := (r.URL.Path == "/" && r.Method == "POST")
+	if !validRequest {
+		http.NotFound(w, r)
+		return
 	}
-	password := string(data)
+	err := r.ParseForm()
+	if err != nil {
+		badRequest(w)
+		return
+	}
+	password := r.PostForm.Get("password")
+	if password == "" {
+		badRequest(w)
+		return
+	}
 	fmt.Fprint(w, EncodedHash(password))
 }
 
+func badRequest(w http.ResponseWriter) {
+	// per http://stackoverflow.com/a/40096757
+	w.WriteHeader(http.StatusBadRequest)
+	w.Write([]byte("400 bad request"))
+}
+
 func shutdownHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprint(w, "Graceful shutdown.")
+	validRequest := (r.URL.Path == "/shutdown" && r.Method == "POST")
+	if !validRequest {
+		http.NotFound(w, r)
+		return
+	}
+	log.Fatal("Not-so-graceful shutdown")
 }
 
 func main() {
 	// per https://golang.org/pkg/net/http/
 	http.HandleFunc("/", handler)
 	http.HandleFunc("/shutdown", shutdownHandler)
-	http.ListenAndServe(":8080", nil)
+	log.Fatal(http.ListenAndServe(":8080", nil))
 }
