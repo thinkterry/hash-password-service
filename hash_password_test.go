@@ -29,7 +29,6 @@ func TestBase64(t *testing.T) {
 	}
 }
 
-// end-to-end test
 func TestEncodedHash(t *testing.T) {
 	encoded := EncodedHash("angryMonkey")
 	const expected = "" +

@@ -7,8 +7,14 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
+	"os/signal"
 	"time"
 )
+
+const seconds = 5
+const rootPath = "/"
+const shutdownPath = "/shutdown"
 
 var srv *http.Server
 
@@ -27,7 +33,7 @@ func EncodedHash(msg string) string {
 }
 
 func encodedHashHandler(w http.ResponseWriter, r *http.Request) {
-	validRequest := (r.URL.Path == "/" && r.Method == "POST")
+	validRequest := (r.URL.Path == rootPath && r.Method == "POST")
 	if !validRequest {
 		http.NotFound(w, r)
 		return
@@ -42,6 +48,8 @@ func encodedHashHandler(w http.ResponseWriter, r *http.Request) {
 		badRequest(w)
 		return
 	}
+
+	time.Sleep(time.Duration(seconds) * time.Second)
 	fmt.Fprint(w, EncodedHash(password))
 }
 
@@ -52,7 +60,7 @@ func badRequest(w http.ResponseWriter) {
 }
 
 func shutdownHandler(w http.ResponseWriter, r *http.Request) {
-	validRequest := (r.URL.Path == "/shutdown" && r.Method == "POST")
+	validRequest := (r.URL.Path == shutdownPath && r.Method == "POST")
 	if !validRequest {
 		http.NotFound(w, r)
 		return
@@ -62,29 +70,38 @@ func shutdownHandler(w http.ResponseWriter, r *http.Request) {
 
 func StartServer() {
 	// per https://golang.org/pkg/net/http/
-	http.HandleFunc("/", encodedHashHandler)
-	http.HandleFunc("/shutdown", shutdownHandler)
+	http.HandleFunc(rootPath, encodedHashHandler)
+	http.HandleFunc(shutdownPath, shutdownHandler)
 
 	// per http://stackoverflow.com/a/42533360
 	srv = &http.Server{Addr: ":8080"}
 	go func() {
-		err := srv.ListenAndServe()
+		err := srv.ListenAndServe() // block until shutdown
 		if err != nil {
 			// probably an intentional shutdown, not an error
-			log.Fatal(err)
+			log.Println(err)
 		}
 	}()
 }
 
 func StopServer() {
-	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
-	srv.Shutdown(ctx)
+	ctx, _ := context.WithTimeout(context.Background(), seconds*time.Second)
+	err := srv.Shutdown(ctx)
+
+	if err != nil {
+		// probably an intentional shutdown, not an error
+		log.Println(err)
+	}
+
+	os.Exit(0)
 }
 
 func main() {
 	StartServer()
+	defer StopServer()
 
-	// @todo use channels to break this infinite loop
-	for {
-	}
+	// per https://golang.org/pkg/os/signal/#example_Notify
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt)
+	<-c // block until a signal is received
 }
