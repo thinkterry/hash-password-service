@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/sha512"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -19,19 +20,10 @@ const shutdownPath = "/shutdown"
 var srv *http.Server
 
 func encodedHashHandler(w http.ResponseWriter, r *http.Request) {
-	validRequest := (r.URL.Path == rootPath && r.Method == "POST")
-	if !validRequest {
-		http.NotFound(w, r)
-		return
-	}
-	err := r.ParseForm()
+	password, err := parsePassword(w, r)
 	if err != nil {
-		badRequest(w)
-		return
-	}
-	password := r.PostForm.Get("password")
-	if password == "" {
-		badRequest(w)
+		// HTTP status codes have already been set;
+		// all that's needed to do now is:
 		return
 	}
 
@@ -45,7 +37,30 @@ func shutdownHandler(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
+
 	StopServer()
+}
+
+func parsePassword(w http.ResponseWriter, r *http.Request) (string, error) {
+	var password string
+
+	validRequest := (r.URL.Path == rootPath && r.Method == "POST")
+	if !validRequest {
+		http.NotFound(w, r)
+		return password, errors.New("Invalid URL or HTTP method")
+	}
+	err := r.ParseForm()
+	if err != nil {
+		badRequest(w)
+		return password, errors.New("Form unparseable")
+	}
+	password = r.PostForm.Get("password")
+	if password == "" {
+		badRequest(w)
+		return password, errors.New("Password paramenter missing")
+	}
+
+	return password, err
 }
 
 func badRequest(w http.ResponseWriter) {
@@ -62,7 +77,7 @@ func StartServer() {
 	// per http://stackoverflow.com/a/42533360
 	srv = &http.Server{Addr: ":8080"}
 	go func() {
-		err := srv.ListenAndServe() // block until shutdown
+		err := srv.ListenAndServe() // block until shut down
 		if err != nil {
 			// probably an intentional shutdown, not an error
 			log.Println(err)
@@ -79,7 +94,7 @@ func StopServer() {
 		log.Println(err)
 	}
 
-	os.Exit(0)
+	os.Exit(0) // override SIGINT blocking in main, if necessary
 }
 
 func EncodedHash(msg string) string {
@@ -103,5 +118,5 @@ func main() {
 	// per https://golang.org/pkg/os/signal/#example_Notify
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt)
-	<-c // block until a signal is received
+	<-c // block server shutdown until a SIGINT is received
 }

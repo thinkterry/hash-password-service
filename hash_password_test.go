@@ -40,7 +40,7 @@ func TestEncodedHash(t *testing.T) {
 	}
 }
 
-// end-to-end test
+// end-to-end test (slow)
 func TestService(t *testing.T) {
 	StartServer()
 	defer StopServer()
