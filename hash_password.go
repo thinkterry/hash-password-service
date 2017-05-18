@@ -2,11 +2,19 @@ package main
 
 import (
 	"crypto/sha512"
-	"fmt"
+	"encoding/base64"
 )
 
-func Hash(password string) string {
-	hash := sha512.New()
-	hash.Write([]byte(password))
-	return fmt.Sprintf("%x", hash.Sum(nil))
+func Hash(msg []byte) []byte {
+	hasher := sha512.New()
+	hasher.Write(msg)
+	return hasher.Sum(nil)
+}
+
+func Base64(msg []byte) string {
+	return base64.StdEncoding.EncodeToString(msg)
+}
+
+func EncodedHash(msg string) string {
+	return Base64(Hash([]byte(msg)))
 }
