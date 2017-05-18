@@ -1,12 +1,16 @@
 package main
 
 import (
+	"context"
 	"crypto/sha512"
 	"encoding/base64"
 	"fmt"
 	"log"
 	"net/http"
+	"time"
 )
+
+var srv *http.Server
 
 func Hash(msg []byte) []byte {
 	hasher := sha512.New()
@@ -53,12 +57,34 @@ func shutdownHandler(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	log.Fatal("Not-so-graceful shutdown")
+	StopServer()
 }
 
-func main() {
+func StartServer() {
 	// per https://golang.org/pkg/net/http/
 	http.HandleFunc("/", encodedHashHandler)
 	http.HandleFunc("/shutdown", shutdownHandler)
-	log.Fatal(http.ListenAndServe(":8080", nil))
+
+	// per http://stackoverflow.com/a/42533360
+	srv = &http.Server{Addr: ":8080"}
+	go func() {
+		err := srv.ListenAndServe()
+		if err != nil {
+			// probably an intentional shutdown, not an error
+			log.Fatal(err)
+		}
+	}()
+}
+
+func StopServer() {
+	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
+	srv.Shutdown(ctx)
+}
+
+func main() {
+	StartServer()
+
+	// @todo use channels to break this infinite loop
+	for {
+	}
 }

@@ -43,7 +43,8 @@ func TestEncodedHash(t *testing.T) {
 
 // end-to-end test
 func TestService(t *testing.T) {
-	// @assume server is already started
+	StartServer()
+	defer StopServer()
 
 	data := url.Values{}
 	data.Set("password", "angryMonkey")
