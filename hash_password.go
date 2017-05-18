@@ -3,6 +3,8 @@ package main
 import (
 	"crypto/sha512"
 	"encoding/base64"
+	"fmt"
+	"net/http"
 )
 
 func Hash(msg []byte) []byte {
@@ -17,4 +19,15 @@ func Base64(msg []byte) string {
 
 func EncodedHash(msg string) string {
 	return Base64(Hash([]byte(msg)))
+}
+
+// per https://golang.org/doc/articles/wiki/
+
+func handler(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprintf(w, "Hi there, I love %s!", r.URL.Path[1:])
+}
+
+func main() {
+	http.HandleFunc("/", handler)
+	http.ListenAndServe(":8080", nil)
 }
